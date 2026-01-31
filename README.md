@@ -1,4 +1,4 @@
-# 🔍 AI Review Helper
+# 🔍 ReviewPal
 
 **Help humans review AI-generated code faster.**
 
@@ -13,7 +13,7 @@
 ```bash
 mkdir -p .github/workflows
 curl -o .github/workflows/ai-review.yml \
-  https://raw.githubusercontent.com/your-org/ai-review-helper/main/examples/github-action-workflow.yml
+  https://raw.githubusercontent.com/Arephan/reviewpal/main/examples/github-action-workflow.yml
 ```
 
 2. **That's it!** The action runs on every PR with zero configuration needed.
@@ -42,7 +42,7 @@ curl -o .github/workflows/ai-review.yml \
 ## Example Output
 
 ```markdown
-## 🔍 AI Review Helper
+## 🔍 ReviewPal
 
 ### 📄 `src/components/UserProfile.tsx`
 
@@ -113,8 +113,8 @@ jobs:
         with:
           fetch-depth: 0
       
-      - name: AI Review Helper
-        uses: your-org/ai-review-helper@v1
+      - name: ReviewPal
+        uses: Arephan/reviewpal@v1
         with:
           # Optional: enables AI summaries
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -123,16 +123,16 @@ jobs:
 ### CLI
 
 ```bash
-npm install -g ai-review-helper
+npm install -g reviewpal
 
 # Review staged changes
-ai-review-helper
+reviewpal
 
 # Review a git range
-ai-review-helper --git HEAD~3..HEAD
+reviewpal --git HEAD~3..HEAD
 
 # Pipe from git
-git diff main..feature | ai-review-helper -
+git diff main..feature | reviewpal -
 ```
 
 ---
@@ -154,7 +154,7 @@ git diff main..feature | ai-review-helper -
 ### CLI Options
 
 ```bash
-ai-review-helper --help
+reviewpal --help
 
 Options:
   -g, --git <range>     Git diff range (e.g., HEAD~3..HEAD)
@@ -225,8 +225,8 @@ This tool helps reviewers:
 
 ```bash
 # Clone
-git clone https://github.com/your-org/ai-review-helper
-cd ai-review-helper
+git clone https://github.com/Arephan/reviewpal
+cd reviewpal
 
 # Install
 npm install

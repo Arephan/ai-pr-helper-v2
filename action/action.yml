@@ -1,4 +1,4 @@
-name: 'AI Review Helper'
+name: 'ReviewPal'
 description: 'Help humans review AI-generated code faster with comprehension aids'
 author: 'Han Kim'
 
@@ -158,7 +158,7 @@ runs:
         github-token: ${{ inputs.github_token }}
         script: |
           const analysis = `${{ steps.analyze.outputs.analysis_markdown }}`;
-          const marker = '<!-- ai-review-helper -->';
+          const marker = '<!-- reviewpal -->';
           
           // Skip if no meaningful content
           if (!analysis.trim() || analysis.includes('No major concerns found')) {

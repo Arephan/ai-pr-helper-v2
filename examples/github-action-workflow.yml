@@ -1,10 +1,10 @@
-# AI Review Helper - GitHub Action Workflow
+# ReviewPal - GitHub Action Workflow
 # Drop this file into .github/workflows/ to enable AI-powered code reviews
 #
 # Works out of the box with zero configuration!
 # Add ANTHROPIC_API_KEY secret for AI-powered summaries (optional).
 
-name: AI Code Review
+name: ReviewPal Code Review
 
 on:
   pull_request:
@@ -37,8 +37,8 @@ jobs:
         with:
           fetch-depth: 0  # Full history for diff
       
-      - name: AI Review Helper
-        uses: your-org/ai-review-helper@v1
+      - name: ReviewPal
+        uses: Arephan/reviewpal@v1
         with:
           # Optional: Add ANTHROPIC_API_KEY secret for AI summaries
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -55,7 +55,7 @@ jobs:
       - name: Summary
         if: always()
         run: |
-          echo "### AI Review Helper Results" >> $GITHUB_STEP_SUMMARY
+          echo "### ReviewPal Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           if [ "${{ steps.ai-review.outputs.total_files }}" = "0" ]; then
             echo "✅ No TypeScript/JavaScript files changed" >> $GITHUB_STEP_SUMMARY

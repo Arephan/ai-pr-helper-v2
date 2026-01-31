@@ -1,10 +1,10 @@
 {
-  "name": "ai-review-helper",
+  "name": "reviewpal",
   "version": "1.0.0",
   "description": "Help humans review AI-generated code faster through comprehension aids",
   "main": "dist/index.js",
   "bin": {
-    "ai-review-helper": "./dist/index.js"
+    "reviewpal": "./dist/index.js"
   },
   "scripts": {
     "build": "tsc",

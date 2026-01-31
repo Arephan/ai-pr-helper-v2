@@ -1,0 +1,105 @@
+/**
+ * Core types for AI Review Helper
+ */
+export interface DiffHunk {
+    filename: string;
+    startLine: number;
+    endLine: number;
+    content: string;
+    additions: string[];
+    deletions: string[];
+    context: string;
+}
+export interface ParsedDiff {
+    files: DiffFile[];
+}
+export interface DiffFile {
+    filename: string;
+    hunks: DiffHunk[];
+    additions: number;
+    deletions: number;
+}
+export interface SummaryAnalysis {
+    what: string;
+    why: string;
+    watch: string[];
+}
+export interface PatternMatch {
+    type: PatternType;
+    lines: number[];
+    issue: string;
+    simplerAlternative?: string;
+}
+export type PatternType = 'over-defensive' | 'verbose-comments' | 'over-abstraction' | 'naming-chaos' | 'import-bloat' | 'monolithic-function' | 'catch-all-error';
+export interface PatternAnalysis {
+    patternsFound: PatternMatch[];
+    overallAiLikelihood: 'high' | 'medium' | 'low';
+    keyQuestion?: string;
+}
+export interface ComplexityMetrics {
+    nestingDepth: number;
+    cyclomaticComplexity: number;
+    parameterCount: number;
+    lineCount: number;
+    dependencyCount: number;
+}
+export interface ComplexityAnalysis {
+    score: number;
+    metrics: ComplexityMetrics;
+    flags: ComplexityFlag[];
+    suggestions: string[];
+}
+export interface ComplexityFlag {
+    metric: keyof ComplexityMetrics;
+    value: number;
+    threshold: number;
+    severity: 'warning' | 'critical';
+}
+export interface HunkAnalysis {
+    hunk: DiffHunk;
+    summary?: SummaryAnalysis;
+    patterns?: PatternAnalysis;
+    complexity?: ComplexityAnalysis;
+    processingTime: number;
+}
+export interface ReviewResult {
+    files: FileAnalysis[];
+    totalHunks: number;
+    totalProcessingTime: number;
+    aiCodeLikelihood: 'high' | 'medium' | 'low';
+}
+export interface FileAnalysis {
+    filename: string;
+    hunks: HunkAnalysis[];
+    overallComplexity: number;
+}
+export interface ReviewOptions {
+    input: string;
+    format: OutputFormat;
+    verbose: boolean;
+    skipSummary: boolean;
+    skipPatterns: boolean;
+    skipComplexity: boolean;
+    maxHunks: number;
+    contextLines: number;
+}
+export type OutputFormat = 'markdown' | 'json' | 'text' | 'github';
+export interface Config {
+    anthropicApiKey?: string;
+    model: string;
+    complexityThresholds: ComplexityThresholds;
+    enabledAnalyzers: {
+        summary: boolean;
+        patterns: boolean;
+        complexity: boolean;
+    };
+}
+export interface ComplexityThresholds {
+    nestingDepth: number;
+    cyclomaticComplexity: number;
+    parameterCount: number;
+    lineCount: number;
+    dependencyCount: number;
+}
+export declare const DEFAULT_CONFIG: Config;
+//# sourceMappingURL=types.d.ts.map

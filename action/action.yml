@@ -1,0 +1,174 @@
+name: 'AI Review Helper'
+description: 'Help humans review AI-generated code faster with comprehension aids'
+author: 'Han Kim'
+
+branding:
+  icon: 'eye'
+  color: 'purple'
+
+inputs:
+  anthropic_api_key:
+    description: 'Anthropic API key for Claude analysis'
+    required: true
+  model:
+    description: 'Claude model to use'
+    required: false
+    default: 'claude-sonnet-4-20250514'
+  max_hunks:
+    description: 'Maximum number of hunks to analyze'
+    required: false
+    default: '20'
+  skip_summary:
+    description: 'Skip "What Changed & Why" analysis'
+    required: false
+    default: 'false'
+  skip_patterns:
+    description: 'Skip AI pattern detection'
+    required: false
+    default: 'false'
+  skip_complexity:
+    description: 'Skip complexity analysis'
+    required: false
+    default: 'false'
+  comment_on_pr:
+    description: 'Post analysis as PR comment'
+    required: false
+    default: 'true'
+  fail_on_high_ai:
+    description: 'Fail workflow if high AI likelihood detected'
+    required: false
+    default: 'false'
+
+outputs:
+  total_files:
+    description: 'Number of files analyzed'
+  total_hunks:
+    description: 'Number of hunks reviewed'
+  ai_likelihood:
+    description: 'Overall AI code likelihood (low/medium/high)'
+  patterns_found:
+    description: 'Number of AI patterns detected'
+  high_complexity_hunks:
+    description: 'Number of high-complexity hunks'
+  analysis_markdown:
+    description: 'Full analysis in markdown format'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+    
+    - name: Install dependencies
+      shell: bash
+      run: |
+        cd ${{ github.action_path }}/..
+        npm ci
+    
+    - name: Build
+      shell: bash
+      run: |
+        cd ${{ github.action_path }}/..
+        npm run build
+    
+    - name: Get PR diff
+      shell: bash
+      id: diff
+      run: |
+        git fetch origin ${{ github.base_ref }}
+        git diff origin/${{ github.base_ref }}..HEAD > /tmp/pr.diff
+        echo "diff_file=/tmp/pr.diff" >> $GITHUB_OUTPUT
+    
+    - name: Run analysis
+      shell: bash
+      id: analyze
+      env:
+        ANTHROPIC_API_KEY: ${{ inputs.anthropic_api_key }}
+      run: |
+        cd ${{ github.action_path }}/..
+        
+        # Build options
+        OPTIONS=""
+        if [ "${{ inputs.skip_summary }}" = "true" ]; then
+          OPTIONS="$OPTIONS --no-summary"
+        fi
+        if [ "${{ inputs.skip_patterns }}" = "true" ]; then
+          OPTIONS="$OPTIONS --no-patterns"
+        fi
+        if [ "${{ inputs.skip_complexity }}" = "true" ]; then
+          OPTIONS="$OPTIONS --no-complexity"
+        fi
+        
+        # Run analysis
+        node dist/index.js ${{ steps.diff.outputs.diff_file }} \
+          --format markdown \
+          --max-hunks ${{ inputs.max_hunks }} \
+          --model ${{ inputs.model }} \
+          $OPTIONS > /tmp/analysis.md
+        
+        # Export for outputs
+        echo "analysis_markdown<<EOF" >> $GITHUB_OUTPUT
+        cat /tmp/analysis.md >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+        
+        # Also run JSON for structured data
+        node dist/index.js ${{ steps.diff.outputs.diff_file }} \
+          --format json \
+          --max-hunks ${{ inputs.max_hunks }} \
+          --model ${{ inputs.model }} \
+          $OPTIONS > /tmp/analysis.json
+        
+        # Extract key metrics
+        echo "total_files=$(jq '.files | length' /tmp/analysis.json)" >> $GITHUB_OUTPUT
+        echo "total_hunks=$(jq '.totalHunks' /tmp/analysis.json)" >> $GITHUB_OUTPUT
+        echo "ai_likelihood=$(jq -r '.aiCodeLikelihood' /tmp/analysis.json)" >> $GITHUB_OUTPUT
+    
+    - name: Post PR comment
+      if: inputs.comment_on_pr == 'true' && github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const analysis = `${{ steps.analyze.outputs.analysis_markdown }}`;
+          
+          // Find existing comment from this action
+          const { data: comments } = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number
+          });
+          
+          const botComment = comments.find(c => 
+            c.user.type === 'Bot' && 
+            c.body.includes('AI Code Review Helper')
+          );
+          
+          const body = analysis;
+          
+          if (botComment) {
+            // Update existing comment
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: botComment.id,
+              body
+            });
+          } else {
+            // Create new comment
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body
+            });
+          }
+    
+    - name: Check AI likelihood
+      if: inputs.fail_on_high_ai == 'true'
+      shell: bash
+      run: |
+        if [ "${{ steps.analyze.outputs.ai_likelihood }}" = "high" ]; then
+          echo "::error::High AI code likelihood detected - review carefully"
+          exit 1
+        fi

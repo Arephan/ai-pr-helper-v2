@@ -119,13 +119,13 @@ npm run build
 
 2. **Push code to GitHub**:
    ```bash
-   cd /Users/hankim/clawd/ai-review-helper
+   cd reviewpal  # your local repo directory
    git push -u origin main
    ```
 
 3. **Test GitHub Action** (optional but recommended):
    ```bash
-   cd /Users/hankim/clawd/code-review-test
+   cd code-review-test  # your test repo
    git push -u origin test-reviewpal-action
    # Create PR on GitHub
    # Verify action runs and posts comment

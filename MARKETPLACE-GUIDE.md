@@ -27,7 +27,7 @@
 ### 3. Push Your Changes
 
 ```bash
-cd /Users/hankim/clawd/ai-review-helper
+cd reviewpal  # your local repo directory
 git add LICENSE action.yml
 git commit -m "Add LICENSE and move action.yml to root for Marketplace"
 git push -u origin main
@@ -84,7 +84,7 @@ git push -u origin main
 **Option B: Via Command Line**
 
 ```bash
-cd /Users/hankim/clawd/ai-review-helper
+cd reviewpal  # your local repo directory
 
 # Create and push tag
 git tag -a v1.0.0 -m "Initial release"
@@ -132,7 +132,7 @@ jobs:
 GitHub Actions convention is to maintain a major version tag:
 
 ```bash
-cd /Users/hankim/clawd/ai-review-helper
+cd reviewpal  # your local repo directory
 
 # Create/move v1 tag to latest v1.x.x release
 git tag -fa v1 -m "Update v1 to v1.0.0"

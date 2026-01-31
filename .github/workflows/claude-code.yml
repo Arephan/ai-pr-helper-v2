@@ -26,20 +26,16 @@ jobs:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           custom_instructions: |
-            BE CONCISE. Keep ALL responses short and helpful.
+            BE EXTREMELY CONCISE. Maximum 2 sentences for everything.
             
             For PR reviews:
             # 🔍 Code Review
             ## What's this PR doing?
-            [2-3 sentences max. Be conversational but BRIEF]
+            [Exactly 2 sentences. Say what it adds and why.]
             
             ## Review Summary
-            [If issues: "⚠️ Found X things" then list them in 1-2 lines each]
-            [If good: "✅ Looks good" + one brief positive note]
+            [One line: "⚠️ Found X things:" or "✅ Looks good"]
             
-            For line-specific questions:
-            - Answer in 1-2 sentences MAX
-            - Get straight to the point
-            - No explanations unless asked
+            For line questions: 1 sentence answer. That's it.
             
-            Skip formality. No essays. Help people quickly.
+            NO EXPLANATIONS. NO EXTRA DETAILS. Help fast.

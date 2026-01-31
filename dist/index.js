@@ -22,6 +22,8 @@ const complexity_js_1 = require("./analyzers/complexity.js");
 const claude_js_1 = require("./api/claude.js");
 const markdown_js_1 = require("./formatters/markdown.js");
 const text_js_1 = require("./formatters/text.js");
+const friendly_js_1 = require("./formatters/friendly.js");
+const react_patterns_js_1 = require("./analyzers/react-patterns.js");
 const types_js_1 = require("./types.js");
 const VERSION = '1.0.0';
 async function main() {
@@ -32,7 +34,7 @@ async function main() {
         .version(VERSION)
         .argument('[input]', 'Diff file, git range, or - for stdin')
         .option('-g, --git <range>', 'Use git diff for the specified range')
-        .option('-f, --format <type>', 'Output format: text, markdown, json, github', 'text')
+        .option('-f, --format <type>', 'Output format: text, markdown, json, friendly', 'friendly')
         .option('--no-summary', 'Skip "What Changed & Why" analysis')
         .option('--no-patterns', 'Skip AI pattern detection')
         .option('--no-complexity', 'Skip complexity analysis')
@@ -187,11 +189,27 @@ async function analyzeHunk(hunk, filename, options) {
         hunk,
         processingTime: 0
     };
+    const allContent = [...hunk.additions, ...hunk.deletions].join('\n');
     // Solution 4: Complexity (always fast, no API)
     if (options.complexity) {
-        const allContent = [...hunk.additions, ...hunk.deletions].join('\n');
         if (allContent.trim()) {
             result.complexity = (0, complexity_js_1.analyzeComplexity)(allContent);
+        }
+    }
+    // React Patterns (static analysis, no API)
+    if ((0, diff_js_1.isTypeScriptFile)(filename) && allContent.trim()) {
+        const reactAnalysis = (0, react_patterns_js_1.analyzeReactPatterns)(allContent, filename);
+        // Convert React patterns to our pattern format if any found
+        if (reactAnalysis.patterns.length > 0 && !result.patterns) {
+            result.patterns = {
+                patternsFound: reactAnalysis.patterns.map(p => ({
+                    type: p.type,
+                    lines: p.line ? [p.line] : [],
+                    issue: p.message,
+                    simplerAlternative: p.suggestion
+                })),
+                overallAiLikelihood: reactAnalysis.patterns.some(p => p.severity === 'warning') ? 'medium' : 'low'
+            };
         }
     }
     // Solution 1: Summary (uses Claude)
@@ -208,7 +226,17 @@ async function analyzeHunk(hunk, filename, options) {
         try {
             const addedCode = hunk.additions.join('\n');
             if (addedCode.trim()) {
-                result.patterns = await (0, claude_js_1.detectPatterns)(addedCode, filename, options.model);
+                const claudePatterns = await (0, claude_js_1.detectPatterns)(addedCode, filename, options.model);
+                // Merge with React patterns if we have both
+                if (result.patterns && claudePatterns.patternsFound.length > 0) {
+                    result.patterns.patternsFound.push(...claudePatterns.patternsFound);
+                    if (claudePatterns.overallAiLikelihood === 'high') {
+                        result.patterns.overallAiLikelihood = 'high';
+                    }
+                }
+                else if (!result.patterns) {
+                    result.patterns = claudePatterns;
+                }
             }
         }
         catch (e) {
@@ -228,7 +256,8 @@ function formatOutput(result, format) {
         case 'markdown':
             return (0, markdown_js_1.formatReviewResult)(result);
         case 'github':
-            return (0, markdown_js_1.formatReviewResult)(result); // Same as markdown for now
+        case 'friendly':
+            return (0, friendly_js_1.formatFriendlyReviewResult)(result);
         case 'text':
         default:
             return (0, text_js_1.formatReviewResultText)(result);

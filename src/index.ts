@@ -21,6 +21,8 @@ import { initClaudeClient, generateSummary, detectPatterns } from './api/claude.
 import { formatReviewResult } from './formatters/markdown.js';
 import { formatReviewResultJson, formatMinimalSummary } from './formatters/json.js';
 import { formatReviewResultText } from './formatters/text.js';
+import { formatFriendlyReviewResult } from './formatters/friendly.js';
+import { analyzeReactPatterns, ReactPattern } from './analyzers/react-patterns.js';
 import {
   DiffHunk,
   HunkAnalysis,
@@ -41,7 +43,7 @@ async function main() {
     .version(VERSION)
     .argument('[input]', 'Diff file, git range, or - for stdin')
     .option('-g, --git <range>', 'Use git diff for the specified range')
-    .option('-f, --format <type>', 'Output format: text, markdown, json, github', 'text')
+    .option('-f, --format <type>', 'Output format: text, markdown, json, friendly', 'friendly')
     .option('--no-summary', 'Skip "What Changed & Why" analysis')
     .option('--no-patterns', 'Skip AI pattern detection')
     .option('--no-complexity', 'Skip complexity analysis')
@@ -247,11 +249,30 @@ async function analyzeHunk(
     processingTime: 0
   };
   
+  const allContent = [...hunk.additions, ...hunk.deletions].join('\n');
+  
   // Solution 4: Complexity (always fast, no API)
   if (options.complexity) {
-    const allContent = [...hunk.additions, ...hunk.deletions].join('\n');
     if (allContent.trim()) {
       result.complexity = analyzeComplexity(allContent);
+    }
+  }
+  
+  // React Patterns (static analysis, no API)
+  if (isTypeScriptFile(filename) && allContent.trim()) {
+    const reactAnalysis = analyzeReactPatterns(allContent, filename);
+    
+    // Convert React patterns to our pattern format if any found
+    if (reactAnalysis.patterns.length > 0 && !result.patterns) {
+      result.patterns = {
+        patternsFound: reactAnalysis.patterns.map(p => ({
+          type: p.type as any,
+          lines: p.line ? [p.line] : [],
+          issue: p.message,
+          simplerAlternative: p.suggestion
+        })),
+        overallAiLikelihood: reactAnalysis.patterns.some(p => p.severity === 'warning') ? 'medium' : 'low'
+      };
     }
   }
   
@@ -274,7 +295,16 @@ async function analyzeHunk(
     try {
       const addedCode = hunk.additions.join('\n');
       if (addedCode.trim()) {
-        result.patterns = await detectPatterns(addedCode, filename, options.model);
+        const claudePatterns = await detectPatterns(addedCode, filename, options.model);
+        // Merge with React patterns if we have both
+        if (result.patterns && claudePatterns.patternsFound.length > 0) {
+          result.patterns.patternsFound.push(...claudePatterns.patternsFound);
+          if (claudePatterns.overallAiLikelihood === 'high') {
+            result.patterns.overallAiLikelihood = 'high';
+          }
+        } else if (!result.patterns) {
+          result.patterns = claudePatterns;
+        }
       }
     } catch (e) {
       // Continue without patterns on API error
@@ -295,7 +325,8 @@ function formatOutput(result: ReviewResult, format: OutputFormat): string {
     case 'markdown':
       return formatReviewResult(result);
     case 'github':
-      return formatReviewResult(result); // Same as markdown for now
+    case 'friendly':
+      return formatFriendlyReviewResult(result);
     case 'text':
     default:
       return formatReviewResultText(result);

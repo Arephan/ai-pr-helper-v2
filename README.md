@@ -2,103 +2,99 @@
 
 **Help humans review AI-generated code faster.**
 
-> Every AI code review tool focuses on finding bugs. This one focuses on **comprehension** — making AI-generated code easier to understand.
+> Traditional code review tools find bugs. This one helps you **understand** the code faster.
 
-## The Problem
+## ⏱️ Quick Start (5 minutes)
 
-Developers consistently report that reviewing AI-generated code takes **2-3x longer** than reviewing human code. Not because it's buggier, but because:
+### For MetalBear PRs
 
-- Too verbose with unnecessary comments
-- Over-engineered abstractions
-- Non-standard patterns that feel "off"
-- Hard to follow logic flow
-- No context about intent
+1. **Copy the workflow file** to your repo:
 
-AI Review Helper addresses **verification debt**: when you don't write the code yourself, you have to rebuild understanding during review.
+```bash
+mkdir -p .github/workflows
+curl -o .github/workflows/ai-review.yml \
+  https://raw.githubusercontent.com/your-org/ai-review-helper/main/examples/github-action-workflow.yml
+```
 
-## Features
+2. **That's it!** The action runs on every PR with zero configuration needed.
 
-### 1. 🔍 "What Changed & Why" Summaries
-For each code change, get a quick explanation:
-- **WHAT:** What behavior actually changed
-- **WHY:** The likely intent behind the change
-- **WATCH:** Things the reviewer should verify
+**Optional:** Add your Anthropic API key to enable AI-powered summaries:
+- Go to repo Settings → Secrets → Actions
+- Add `ANTHROPIC_API_KEY` with your key
 
-### 2. 🔮 AI Pattern Decoder
-Detect and explain common "AI-isms" that make code harder to review:
-- Over-defensive try-catch blocks
-- Verbose comments that explain obvious syntax
-- Unnecessary abstraction layers
-- Naming inconsistencies
-- Import bloat
+---
 
-### 3. 🌡️ Complexity Highlighter
-Objective metrics to prioritize review attention:
-- Nesting depth
-- Cyclomatic complexity
-- Parameter count
-- Line count
-- Dependency count
+## What It Does
+
+### Without API Key (Free, Static Analysis)
+- ✅ **Complexity scoring** - Identifies hard-to-review code
+- ✅ **React patterns** - Catches common React anti-patterns
+- ✅ **AI-isms detection** - Spots patterns common in AI-generated code
+- ✅ **Friendly suggestions** - Actionable fixes, not just complaints
+
+### With API Key (Claude-powered)
+- ✅ Everything above, plus:
+- 📋 **What Changed & Why** - Summaries for each code change
+- 🔮 **Intent Analysis** - What was the AI likely trying to do?
+
+---
+
+## Example Output
+
+```markdown
+## 🔍 AI Review Helper
+
+### 📄 `src/components/UserProfile.tsx`
+
+<details>
+<summary>Lines 15-87</summary>
+
+**🔮 I noticed some AI-isms:**
+
+**excessive-try-catch**
+13 try-catch blocks detected. AI tends to over-wrap code in error handlers.
+
+💡 *Simpler approach:* Use a single try-catch at the operation boundary.
+
+---
+
+Hey! 👋 This could use some attention:
+
+```
+fetchUsers()
+├─ try
+  ├─ try
+    ├─ try ← 4 levels deep!
+  ... +8 more nested blocks
+```
+
+**What's going on:**
+7 levels of nesting makes it hard to follow the logic.
+
+**Quick wins:**
+
+```typescript
+// Instead of 5+ nested try-catches, use one:
+try {
+  const response = await fetch(url);
+  const data = await response.json();
+  setState(data);
+} catch (error) {
+  setError(error?.message ?? 'Unknown error');
+}
+```
+
+**Why this matters:**
+Simpler code = faster reviews = fewer bugs slipping through.
+
+</details>
+```
+
+---
 
 ## Installation
 
-```bash
-npm install -g ai-review-helper
-```
-
-Or use with npx:
-```bash
-npx ai-review-helper
-```
-
-## Usage
-
-### CLI
-
-```bash
-# Review staged changes
-ai-review-helper
-
-# Review a git range
-ai-review-helper --git HEAD~3..HEAD
-
-# Read from a diff file
-ai-review-helper path/to/changes.diff
-
-# Pipe from git
-git diff main..feature | ai-review-helper -
-
-# JSON output for CI
-ai-review-helper --format json
-
-# Skip AI analysis (complexity only)
-ai-review-helper --no-summary --no-patterns
-```
-
-### Options
-
-| Option | Description | Default |
-|--------|-------------|---------|
-| `-g, --git <range>` | Git diff range to analyze | - |
-| `-f, --format <type>` | Output: text, markdown, json | text |
-| `--no-summary` | Skip "What Changed & Why" | false |
-| `--no-patterns` | Skip AI pattern detection | false |
-| `--no-complexity` | Skip complexity analysis | false |
-| `-m, --max-hunks <n>` | Max hunks to analyze | 20 |
-| `--model <name>` | Claude model | claude-sonnet-4-20250514 |
-| `-q, --quiet` | Minimal output | false |
-| `-v, --verbose` | Verbose output | false |
-
-### Environment Variables
-
-```bash
-# Required for AI-powered analysis
-export ANTHROPIC_API_KEY=your-key-here
-```
-
-## GitHub Action
-
-Add to your workflow:
+### GitHub Action (Recommended)
 
 ```yaml
 name: AI Code Review
@@ -109,6 +105,9 @@ on:
 jobs:
   review:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -117,103 +116,110 @@ jobs:
       - name: AI Review Helper
         uses: your-org/ai-review-helper@v1
         with:
+          # Optional: enables AI summaries
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          comment_on_pr: true
 ```
+
+### CLI
+
+```bash
+npm install -g ai-review-helper
+
+# Review staged changes
+ai-review-helper
+
+# Review a git range
+ai-review-helper --git HEAD~3..HEAD
+
+# Pipe from git
+git diff main..feature | ai-review-helper -
+```
+
+---
+
+## Configuration
 
 ### Action Inputs
 
-| Input | Description | Required | Default |
-|-------|-------------|----------|---------|
-| `anthropic_api_key` | Anthropic API key | Yes | - |
-| `model` | Claude model | No | claude-sonnet-4-20250514 |
-| `max_hunks` | Max hunks to analyze | No | 20 |
-| `skip_summary` | Skip summaries | No | false |
-| `skip_patterns` | Skip patterns | No | false |
-| `skip_complexity` | Skip complexity | No | false |
-| `comment_on_pr` | Post PR comment | No | true |
-| `fail_on_high_ai` | Fail if high AI likelihood | No | false |
+| Input | Description | Default |
+|-------|-------------|---------|
+| `anthropic_api_key` | Enables AI summaries | - |
+| `max_hunks` | Max code blocks to analyze | 20 |
+| `skip_summary` | Skip AI summaries | false |
+| `skip_patterns` | Skip pattern detection | false |
+| `skip_complexity` | Skip complexity scoring | false |
+| `comment_on_pr` | Post as PR comment | true |
+| `fail_on_high_complexity` | Fail if complexity > 7 | false |
 
-### Action Outputs
+### CLI Options
 
-| Output | Description |
-|--------|-------------|
-| `total_files` | Number of files analyzed |
-| `total_hunks` | Number of hunks reviewed |
-| `ai_likelihood` | AI code likelihood (low/medium/high) |
-| `patterns_found` | Number of AI patterns detected |
-| `analysis_markdown` | Full analysis as markdown |
+```bash
+ai-review-helper --help
 
-## Example Output
-
+Options:
+  -g, --git <range>     Git diff range (e.g., HEAD~3..HEAD)
+  -f, --format <type>   Output: friendly, markdown, json, text
+  --no-summary          Skip AI summaries (no API needed)
+  --no-patterns         Skip pattern detection
+  --no-complexity       Skip complexity analysis
+  -m, --max-hunks <n>   Max hunks to analyze (default: 20)
+  --model <name>        Claude model (default: claude-sonnet-4-20250514)
+  -q, --quiet           Minimal output
 ```
-═══════════════════════════════════════════════
-  AI CODE REVIEW HELPER
-═══════════════════════════════════════════════
 
-OVERVIEW
-  Files analyzed:    3
-  Hunks reviewed:    7
-  AI likelihood:     MEDIUM
-  Processing time:   4.2s
+---
 
-▶ src/components/UserList.tsx
-  Complexity: 6.2/10 (high)
+## What It Catches
 
-  ┌─ Hunk 1 (lines 15-42)
-  │ WHAT: Adds loading state and error handling to user data fetching
-  │ WHY:  Provides UI feedback during async operations
-  │ WATCH:
-  │   • Empty dependency array means this runs once on mount only
-  │   • Error state is set but check if it's displayed somewhere
-  │
-  │ AI PATTERNS:
-  │   ▸ Over-Defensive Code
-  │     Try-catch wraps code that TypeScript already protects
-  │     → Consider: let the error bubble to error boundary
-  │
-  │ COMPLEXITY: 6.8/10
-  │   ! Nesting: 4 (>3)
-  │   ! Lines: 58 (>50)
-  │ Suggestions:
-  │   • Consider extracting fetch logic into custom hook
-  │   • Break validation into separate function
-  └────────────────────────────────────
+### React-Specific Patterns (No API Needed)
 
-═══════════════════════════════════════════════
-```
+| Pattern | Issue | Suggestion |
+|---------|-------|------------|
+| `excessive-try-catch` | AI wraps everything in try-catch | Use single try-catch + error boundaries |
+| `too-many-states` | 5+ useState hooks | Use useReducer or group related state |
+| `boolean-state-overload` | Many boolean flags | Use a single status enum |
+| `useEffect-cleanup` | Missing cleanup | Return cleanup function |
+| `memo-inline-object` | Inline objects break memo | Move styles outside component |
+| `excessive-console` | Debug logs left in | Remove or use proper logging |
+
+### Complexity Metrics
+
+| Metric | Threshold | Why It Matters |
+|--------|-----------|----------------|
+| Nesting Depth | > 3 | Hard to follow logic flow |
+| Cyclomatic Complexity | > 10 | Too many code paths |
+| Parameters | > 4 | Hard to remember arguments |
+| Line Count | > 50 | Can't see whole function |
+| Dependencies | > 10 | Too many responsibilities |
+
+---
 
 ## How It Works
 
-1. **Parse** the git diff into individual hunks
-2. **Analyze** each hunk using:
-   - Static analysis for complexity metrics (fast, no API)
-   - Claude API for summaries and pattern detection
-3. **Format** results for your chosen output
+1. **Parse** the git diff into individual code hunks
+2. **Analyze** each hunk:
+   - Static analysis for complexity (instant, no API)
+   - React pattern detection (instant, no API)
+   - Claude API for summaries (optional, needs key)
+3. **Format** results as friendly PR comments
 
-The tool is optimized for **TypeScript/React** code but works with any JavaScript.
+---
 
 ## Why This Exists
 
-Based on research of 1000+ developer complaints about AI-generated code, the #1 issue isn't bugs — it's **comprehension time**.
+Based on research of 1000+ developer complaints, the #1 issue with AI-generated code isn't bugs — it's **comprehension time**.
 
-Existing tools focus on:
-- ❌ Finding bugs (that's what tests/linters are for)
-- ❌ Suggesting fixes (we can't modify the code)
-- ❌ Generic "code quality" scores
+AI code tends to be:
+- Over-defensive (try-catch everywhere)
+- Over-verbose (comments explaining obvious things)
+- Over-engineered (abstractions that don't help)
 
-This tool focuses on:
-- ✅ Explaining what changed and why
-- ✅ Highlighting AI-specific patterns that slow reviewers
-- ✅ Providing objective complexity metrics
-- ✅ Asking the right questions for reviewers
+This tool helps reviewers:
+- Quickly identify areas that need attention
+- Understand what the code is trying to do
+- Get concrete suggestions, not vague advice
 
-## Limitations
-
-- Best with TypeScript/JavaScript/React code
-- Requires Anthropic API key for full analysis
-- Complexity-only mode works without API
-- Large PRs may hit API rate limits
+---
 
 ## Development
 
@@ -228,22 +234,27 @@ npm install
 # Build
 npm run build
 
-# Test
-npm test
+# Test locally
+node dist/index.js --git HEAD~1
 
-# Run locally
-node dist/index.js --help
+# Run tests
+npm test
 ```
+
+---
+
+## Contributing
+
+PRs welcome! Please:
+1. Keep suggestions actionable (not "consider...")
+2. Maintain the friendly tone
+3. Add tests for new patterns
+
+---
 
 ## License
 
 MIT
-
-## Related Research
-
-This tool is based on the insight that **every AI code review tool focuses on correctness, but none focus on comprehension**. 
-
-For the full research, see: [research/complaints-analysis.md](research/complaints-analysis.md)
 
 ---
 

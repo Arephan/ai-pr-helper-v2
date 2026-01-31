@@ -111,7 +111,7 @@ export interface ReviewOptions {
   contextLines: number;
 }
 
-export type OutputFormat = 'markdown' | 'json' | 'text' | 'github';
+export type OutputFormat = 'markdown' | 'json' | 'text' | 'github' | 'friendly';
 
 // Config file
 export interface Config {

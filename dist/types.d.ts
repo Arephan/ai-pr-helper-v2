@@ -83,7 +83,7 @@ export interface ReviewOptions {
     maxHunks: number;
     contextLines: number;
 }
-export type OutputFormat = 'markdown' | 'json' | 'text' | 'github';
+export type OutputFormat = 'markdown' | 'json' | 'text' | 'github' | 'friendly';
 export interface Config {
     anthropicApiKey?: string;
     model: string;

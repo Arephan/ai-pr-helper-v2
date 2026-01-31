@@ -41,6 +41,22 @@ function groupBySeverity(issues) {
 function formatReport(intent, issues) {
   let report = '# 🔍 Code Review\n\n';
   
+  // Add issue count summary at top
+  if (issues.length > 0) {
+    const grouped = groupBySeverity(issues);
+    const criticalCount = (grouped.CRITICAL || []).length;
+    const highCount = (grouped.HIGH || []).length;
+    const mediumCount = (grouped.MEDIUM || []).length;
+    
+    const parts = [];
+    if (criticalCount > 0) parts.push(`💀 ${criticalCount} critical`);
+    if (highCount > 0) parts.push(`🔒 ${highCount} high`);
+    if (mediumCount > 0) parts.push(`⚠️ ${mediumCount} important`);
+    
+    report += `**Found:** ${parts.join(', ')}\n\n`;
+    report += `---\n\n`;
+  }
+  
   // Add intent summary if available
   if (intent) {
     report += `## What's this PR doing?\n\n${intent}\n\n---\n\n`;

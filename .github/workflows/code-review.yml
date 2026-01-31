@@ -50,27 +50,57 @@ jobs:
             echo "# 🔍 Code Review\n\n⚠️ Analysis failed. Check action logs." > review-comment.md
           fi
 
-      - name: Post Comment
+      - name: Post Comments
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs');
             const comment = fs.readFileSync('review-comment.md', 'utf8');
+            const result = JSON.parse(fs.readFileSync('review-result.json', 'utf8'));
+            const issues = result.issues || [];
             
-            // Find existing bot comment
-            const { data: comments } = await github.rest.issues.listComments({
+            // Post inline comments on specific lines
+            const comments = [];
+            for (const issue of issues) {
+              const severity = issue.severity.toUpperCase();
+              const emoji = severity === 'CRITICAL' ? '💀' : severity === 'HIGH' ? '🔒' : '⚠️';
+              const body = `${emoji} **${issue.type}**\n\n${issue.context}\n\n**Fix:** \`${issue.fix || 'See review for details'}\``;
+              
+              comments.push({
+                path: issue.file,
+                line: parseInt(issue.line),
+                body: body
+              });
+            }
+            
+            // Create or update review with inline comments
+            if (comments.length > 0) {
+              try {
+                await github.rest.pulls.createReview({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  pull_number: context.issue.number,
+                  event: 'COMMENT',
+                  comments: comments
+                });
+              } catch (error) {
+                console.log('Failed to post inline comments:', error.message);
+              }
+            }
+            
+            // Post or update summary comment
+            const { data: existingComments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
             });
             
-            const botComment = comments.find(comment => 
+            const botComment = existingComments.find(comment => 
               comment.user.type === 'Bot' && 
               comment.body.includes('# 🔍 Code Review')
             );
             
             if (botComment) {
-              // Update existing comment
               await github.rest.issues.updateComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -78,7 +108,6 @@ jobs:
                 body: comment
               });
             } else {
-              // Create new comment
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,

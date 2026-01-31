@@ -118,6 +118,7 @@ For each comment, provide:
 
 Return JSON in this format:
 {
+  "summary": "Two-sentence summary of what this PR accomplishes. Focus on the main goal and key changes.",
   "comments": [
     {
       "file": ".github/workflows/ci.yml",
@@ -159,6 +160,7 @@ Guidelines:
         };
     });
     return {
+        summary: response.summary,
         comments,
         estimatedReadTimeMinutes: response.estimatedReadTimeMinutes,
     };
@@ -243,12 +245,12 @@ Guidelines:
 /**
  * Format index comment with navigation links to inline comments
  */
-function formatIndexComment(analysis, commentLinks) {
-    const header = `## 📋 Quick Navigation
-
-Found ${commentLinks.length} items for review (~${analysis.estimatedReadTimeMinutes} min read)
-
-`;
+function formatIndexComment(analysis, commentLinks, prSummary) {
+    let header = `## 📋 Quick Navigation\n\n`;
+    if (prSummary) {
+        header += `**Summary:** ${prSummary}\n\n`;
+    }
+    header += `Found ${commentLinks.length} items for review (~${analysis.estimatedReadTimeMinutes} min read)\n\n`;
     // Group by severity for better organization
     const groups = {
         security: [],

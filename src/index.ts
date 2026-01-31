@@ -137,7 +137,7 @@ async function handleReadyPR(
     body: c.body,
   }));
 
-  const indexComment = formatIndexComment(analysis, commentLinks);
+  const indexComment = formatIndexComment(analysis, commentLinks, analysis.summary);
   await github.upsertBotComment(prNumber, BOT_IDENTIFIER_INDEX, indexComment);
 
   // Store analysis for interactive responses (in a real implementation, 

@@ -35762,6 +35762,7 @@ For each comment, provide:
 
 Return JSON in this format:
 {
+  "summary": "Two-sentence summary of what this PR accomplishes. Focus on the main goal and key changes.",
   "comments": [
     {
       "file": ".github/workflows/ci.yml",
@@ -35803,6 +35804,7 @@ Guidelines:
         };
     });
     return {
+        summary: response.summary,
         comments,
         estimatedReadTimeMinutes: response.estimatedReadTimeMinutes,
     };
@@ -35887,12 +35889,12 @@ Guidelines:
 /**
  * Format index comment with navigation links to inline comments
  */
-function formatIndexComment(analysis, commentLinks) {
-    const header = `## 📋 Quick Navigation
-
-Found ${commentLinks.length} items for review (~${analysis.estimatedReadTimeMinutes} min read)
-
-`;
+function formatIndexComment(analysis, commentLinks, prSummary) {
+    let header = `## 📋 Quick Navigation\n\n`;
+    if (prSummary) {
+        header += `**Summary:** ${prSummary}\n\n`;
+    }
+    header += `Found ${commentLinks.length} items for review (~${analysis.estimatedReadTimeMinutes} min read)\n\n`;
     // Group by severity for better organization
     const groups = {
         security: [],
@@ -36766,7 +36768,7 @@ async function handleReadyPR(github, claude, prNumber, config) {
         severity: c.severity,
         body: c.body,
     }));
-    const indexComment = (0, analyzer_js_1.formatIndexComment)(analysis, commentLinks);
+    const indexComment = (0, analyzer_js_1.formatIndexComment)(analysis, commentLinks, analysis.summary);
     await github.upsertBotComment(prNumber, BOT_IDENTIFIER_INDEX, indexComment);
     // Store analysis for interactive responses (in a real implementation, 
     // this would be stored in a persistent way)

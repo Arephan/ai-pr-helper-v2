@@ -123,6 +123,7 @@ For each comment, provide:
 
 Return JSON in this format:
 {
+  "summary": "Two-sentence summary of what this PR accomplishes. Focus on the main goal and key changes.",
   "comments": [
     {
       "file": ".github/workflows/ci.yml",
@@ -153,6 +154,7 @@ Guidelines:
 - Prioritize security > bugs > warnings > suggestions > explanations`;
 
   const response = await claude.completeJSON<{
+    summary: string;
     comments: Array<{
       file: string;
       line: number;
@@ -178,6 +180,7 @@ Guidelines:
   });
 
   return {
+    summary: response.summary,
     comments,
     estimatedReadTimeMinutes: response.estimatedReadTimeMinutes,
   };
@@ -274,13 +277,16 @@ Guidelines:
  */
 export function formatIndexComment(
   analysis: InlineAnalysis,
-  commentLinks: Array<{ path: string; line: number; title: string; severity: Severity; body: string }>
+  commentLinks: Array<{ path: string; line: number; title: string; severity: Severity; body: string }>,
+  prSummary?: string
 ): string {
-  const header = `## 📋 Quick Navigation
-
-Found ${commentLinks.length} items for review (~${analysis.estimatedReadTimeMinutes} min read)
-
-`;
+  let header = `## 📋 Quick Navigation\n\n`;
+  
+  if (prSummary) {
+    header += `**Summary:** ${prSummary}\n\n`;
+  }
+  
+  header += `Found ${commentLinks.length} items for review (~${analysis.estimatedReadTimeMinutes} min read)\n\n`;
 
   // Group by severity for better organization
   const groups: Record<Severity, typeof commentLinks> = {

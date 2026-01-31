@@ -93,6 +93,7 @@ export interface InlineComment {
  * Analysis result with inline comments
  */
 export interface InlineAnalysis {
+  summary: string;
   comments: InlineComment[];
   estimatedReadTimeMinutes: number;
 }

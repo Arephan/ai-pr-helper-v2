@@ -26,18 +26,20 @@ jobs:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           custom_instructions: |
-            When reviewing PRs, write in this format:
+            BE CONCISE. Keep ALL responses short and helpful.
             
+            For PR reviews:
             # 🔍 Code Review
-            
             ## What's this PR doing?
-            
-            [2-3 casual sentences explaining the changes. Start with "Hey" or "So" - be conversational]
+            [2-3 sentences max. Be conversational but BRIEF]
             
             ## Review Summary
+            [If issues: "⚠️ Found X things" then list them in 1-2 lines each]
+            [If good: "✅ Looks good" + one brief positive note]
             
-            [If issues found: "⚠️ Found X things to look at" then list them briefly.
-            If all good: "✅ No critical issues found" + brief positive note.
-            For minor suggestions: mention casually, not as blockers]
+            For line-specific questions:
+            - Answer in 1-2 sentences MAX
+            - Get straight to the point
+            - No explanations unless asked
             
-            Be human and friendly. Skip formal bullet points unless necessary.
+            Skip formality. No essays. Help people quickly.

@@ -4,22 +4,103 @@
 
 > Let Claude review your code changes and catch issues before your teammates do.
 
-## ⏱️ Quick Start (2 minutes)
+## ⏱️ Installation (Step-by-Step)
 
-1. **Add workflow file** to your repo:
+### Step 1: Get Your Anthropic API Key
+
+1. Go to https://console.anthropic.com
+2. Sign up or log in
+3. Click **"Get API Keys"**
+4. Click **"Create Key"**
+5. Copy the key (starts with `sk-ant-...`)
+
+> 💡 **Tip:** Keep this key secret! Don't commit it to your repo.
+
+---
+
+### Step 2: Add API Key to Your GitHub Repo
+
+1. Go to your GitHub repo (e.g., `github.com/yourname/yourrepo`)
+2. Click **Settings** (top right)
+3. In the left sidebar, click **Secrets and variables** → **Actions**
+4. Click **"New repository secret"**
+5. Name: `ANTHROPIC_API_KEY`
+6. Value: Paste your API key from Step 1
+7. Click **"Add secret"**
+
+✅ Your API key is now securely stored!
+
+---
+
+### Step 3: Add ReviewPal Workflow to Your Repo
+
+**Option A: Quick Install (Terminal)**
 
 ```bash
+# Navigate to your repo
+cd your-repo
+
+# Create workflow directory
 mkdir -p .github/workflows
+
+# Download ReviewPal workflow
 curl -o .github/workflows/reviewpal.yml \
   https://raw.githubusercontent.com/Arephan/reviewpal/main/examples/github-action-workflow.yml
+
+# Commit and push
+git add .github/workflows/reviewpal.yml
+git commit -m "Add ReviewPal workflow"
+git push
 ```
 
-2. **Add your Anthropic API key:**
-   - Go to repo Settings → Secrets → Actions
-   - Add `ANTHROPIC_API_KEY` with your key
-   - Get a key at: https://console.anthropic.com
+**Option B: Manual Setup (GitHub Web UI)**
 
-3. **Create a PR** and watch ReviewPal analyze it! 🎉
+1. In your repo, click **"Add file"** → **"Create new file"**
+2. File path: `.github/workflows/reviewpal.yml`
+3. Paste this content:
+
+```yaml
+name: ReviewPal
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - uses: Arephan/reviewpal@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+```
+
+4. Click **"Commit changes"**
+
+---
+
+### Step 4: Test It!
+
+1. Create a new branch: `git checkout -b test-reviewpal`
+2. Make some code changes
+3. Commit and push: `git push -u origin test-reviewpal`
+4. Create a Pull Request on GitHub
+5. Wait ~30-60 seconds
+6. **ReviewPal will comment on your PR!** 🎉
+
+---
+
+## ✅ That's It!
+
+ReviewPal will now automatically review every PR in your repo.
+
+**Need help?** [Open an issue](https://github.com/Arephan/reviewpal/issues)
 
 ---
 
@@ -175,6 +256,70 @@ Claude automatically detects the language and applies appropriate review standar
 - Works with any language
 - Gives specific, actionable feedback
 - Fast and consistent
+
+---
+
+## 🔧 Troubleshooting
+
+### ReviewPal isn't commenting on my PRs
+
+**Check 1: Is the workflow running?**
+- Go to your repo → **Actions** tab
+- Look for "ReviewPal" workflow runs
+- Click on the latest run to see logs
+
+**Check 2: Is the API key set correctly?**
+- Go to repo **Settings** → **Secrets and variables** → **Actions**
+- Verify `ANTHROPIC_API_KEY` exists
+- If not, add it (see Step 2 above)
+
+**Check 3: Does the workflow file exist?**
+- Look for `.github/workflows/reviewpal.yml` in your repo
+- If missing, add it (see Step 3 above)
+
+**Check 4: Are there code changes in the PR?**
+- ReviewPal only analyzes files with code changes
+- Empty PRs or README-only changes won't trigger a review
+
+---
+
+### Error: "API initialization failed"
+
+This means the API key is missing or invalid.
+
+**Fix:**
+1. Verify your API key at https://console.anthropic.com
+2. Make sure it starts with `sk-ant-`
+3. Re-add it to GitHub Secrets (Settings → Secrets → Actions)
+4. Close and reopen your PR to trigger a new run
+
+---
+
+### ReviewPal is too slow
+
+**Normal timing:**
+- Small PR (< 200 lines): 30-60 seconds
+- Medium PR (500 lines): 1-2 minutes
+- Large PR (1000+ lines): 2-5 minutes
+
+**If it's slower:**
+- Check GitHub Actions status page (status.github.com)
+- Check Anthropic API status (status.anthropic.com)
+- Reduce `max_hunks` in the workflow to speed it up
+
+---
+
+### How do I update to the latest version?
+
+Just change `@v1` to `@v1.1.0` (or latest) in your workflow file:
+
+```yaml
+- uses: Arephan/reviewpal@v1.1.0  # specific version
+# or
+- uses: Arephan/reviewpal@v1      # auto-updates to latest v1.x
+```
+
+**Recommendation:** Use `@v1` to get automatic updates.
 
 ---
 

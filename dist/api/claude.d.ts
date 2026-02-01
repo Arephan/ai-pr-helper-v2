@@ -2,8 +2,12 @@
  * Claude API wrapper for AI code review
  */
 export interface AIReview {
-    explanation: string;
-    concerns: string[];
+    summary: string;
+    critical: Array<{
+        type: 'security' | 'crash' | 'data-loss' | 'performance';
+        line: number;
+        issue: string;
+    }>;
     language: string;
 }
 /**

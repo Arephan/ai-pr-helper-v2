@@ -33,36 +33,43 @@ function getClient() {
  * Review code with AI (language agnostic)
  */
 async function reviewCode(code, filename, model = 'claude-sonnet-4-20250514') {
-    const prompt = `You're a friendly senior developer doing a code review. A teammate just opened a PR with this code change in ${filename}.
+    const prompt = `You're reviewing a PR. Be BRIEF and only flag CRITICAL issues.
 
-Review it like you're talking to them in person - casual, helpful, specific.
-
-CODE:
+CODE (${filename}):
 \`\`\`
 ${code.slice(0, 4000)}
 \`\`\`
 
-Write a review that:
-1. Explains what this code does (like you're telling a friend)
-2. Points out specific issues you notice (be direct but nice)
-3. For each issue, say WHERE it is and HOW to fix it
+ONLY report issues that:
+- 🔒 Security vulnerabilities (exposed secrets, SQL injection, XSS, etc.)
+- 💥 Will crash in production (unhandled errors, null refs, race conditions)
+- 🗑️ Data loss risks (missing validation, destructive ops without confirmation)
+- 🐌 Major performance problems (N+1 queries, infinite loops, memory leaks)
+
+Ignore:
+- Style issues
+- Minor optimizations
+- Naming conventions
+- Comments
+- Anything that won't break prod
 
 Respond in JSON:
 {
-  "language": "programming language",
-  "explanation": "2-3 sentences explaining what this PR does, written conversationally",
-  "concerns": [
-    "Natural sentence pointing out an issue, like: 'Hey, on line 23 you're calling fetch without error handling - if the network fails this will crash. Wrap it in try-catch or add .catch()'",
-    "Another concern in natural language..."
+  "language": "language name",
+  "summary": "1 sentence: what does this PR do?",
+  "critical": [
+    {
+      "type": "security|crash|data-loss|performance",
+      "line": line_number_where_issue_is,
+      "issue": "Brief what's wrong (1 sentence)"
+    }
   ]
 }
 
-Only mention real issues. If the code is solid, make concerns an empty array and say so in explanation.
-Be specific about line numbers/locations when you can see them.
-Write like a human, not a report.`;
+If no CRITICAL issues, return empty critical array.`;
     const response = await getClient().messages.create({
         model,
-        max_tokens: 1500,
+        max_tokens: 800,
         messages: [{ role: 'user', content: prompt }]
     });
     const text = response.content[0].type === 'text' ? response.content[0].text : '';
@@ -74,8 +81,8 @@ Write like a human, not a report.`;
         const parsed = JSON.parse(jsonMatch[0]);
         return {
             language: parsed.language || 'Unknown',
-            explanation: parsed.explanation || 'Code changes detected',
-            concerns: Array.isArray(parsed.concerns) ? parsed.concerns : []
+            summary: parsed.summary || 'Code changes',
+            critical: Array.isArray(parsed.critical) ? parsed.critical : []
         };
     }
     catch (e) {
@@ -86,8 +93,8 @@ Write like a human, not a report.`;
 function defaultReview() {
     return {
         language: 'Unknown',
-        explanation: 'Unable to analyze code - might be a parsing issue.',
-        concerns: []
+        summary: 'Unable to analyze',
+        critical: []
     };
 }
 //# sourceMappingURL=claude.js.map

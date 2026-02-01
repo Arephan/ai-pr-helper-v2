@@ -1,5 +1,5 @@
 /**
- * Human-friendly output format
+ * Human-friendly output format (brief, critical-only)
  */
 import { ReviewResult } from '../types.js';
 export declare function formatFriendlyReviewResult(result: ReviewResult): string;

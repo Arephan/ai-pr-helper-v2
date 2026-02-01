@@ -78,8 +78,12 @@ export interface ComplexityFlag {
 
 // AI Review
 export interface AIReview {
-  explanation: string;  // Human-friendly explanation of what this does
-  concerns: string[];   // List of concerns written naturally
+  summary: string;      // 1 sentence: what is this PR
+  critical: Array<{
+    type: 'security' | 'crash' | 'data-loss' | 'performance';
+    line: number;
+    issue: string;
+  }>;
   language: string;
 }
 

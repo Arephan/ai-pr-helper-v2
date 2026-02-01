@@ -153,8 +153,51 @@ runs:
             }
           }
           
+          // Get PR summary from first file's first hunk
+          let prSummary = '';
+          if (analysisJson.files && analysisJson.files[0] && 
+              analysisJson.files[0].hunks && analysisJson.files[0].hunks[0] &&
+              analysisJson.files[0].hunks[0].aiReview) {
+            prSummary = analysisJson.files[0].hunks[0].aiReview.summary || '';
+          }
+          
           if (allIssues.length === 0) {
-            console.log('No critical issues found');
+            // Post "no issues" message
+            const marker = '<!-- reviewpal -->';
+            let noIssuesMsg = `${marker}\n\n`;
+            
+            if (prSummary) {
+              noIssuesMsg += `## 📋 What is this PR about\n\n${prSummary}\n\n---\n\n`;
+            }
+            
+            noIssuesMsg += `✅ **No critical issues found**`;
+            
+            // Check for existing comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number
+            });
+            
+            const botComment = comments.find(c => c.body && c.body.includes(marker));
+            
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: noIssuesMsg
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: noIssuesMsg
+              });
+            }
+            
+            console.log('No critical issues found - posted confirmation');
             return;
           }
           
@@ -207,14 +250,6 @@ runs:
               file: item.file,
               line: item.line
             });
-          }
-          
-          // Get PR summary from first file's first hunk
-          let prSummary = '';
-          if (analysisJson.files && analysisJson.files[0] && 
-              analysisJson.files[0].hunks && analysisJson.files[0].hunks[0] &&
-              analysisJson.files[0].hunks[0].aiReview) {
-            prSummary = analysisJson.files[0].hunks[0].aiReview.summary || '';
           }
           
           let summary = '';

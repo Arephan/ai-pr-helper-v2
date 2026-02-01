@@ -56,7 +56,8 @@ Respond in JSON:
     {
       "type": "security|crash|data-loss|performance",
       "line": line_number_where_issue_is,
-      "issue": "Brief what's wrong (1 sentence)"
+      "issue": "Brief what's wrong (1 sentence)",
+      "friendlySuggestion": "A friendly, polite suggestion for how to fix it. Write like you're helping a teammate - encouraging and specific. 1-2 sentences max."
     }
   ]
 }

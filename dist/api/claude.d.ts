@@ -7,6 +7,7 @@ export interface AIReview {
         type: 'security' | 'crash' | 'data-loss' | 'performance';
         line: number;
         issue: string;
+        friendlySuggestion: string;
     }>;
     language: string;
 }

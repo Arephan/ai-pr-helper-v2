@@ -118,53 +118,109 @@ runs:
         echo "total_hunks=$(jq '.totalHunks // 0' /tmp/analysis.json)" >> $GITHUB_OUTPUT
         echo "ai_likelihood=$(jq -r '.aiCodeLikelihood // "low"' /tmp/analysis.json)" >> $GITHUB_OUTPUT
     
-    - name: Post PR comment
+    - name: Post inline comments and summary
       if: inputs.comment_on_pr == 'true' && github.event_name == 'pull_request' && steps.analyze.outputs.total_hunks != '0'
       uses: actions/github-script@v7
       with:
         github-token: ${{ inputs.github_token }}
         script: |
           const fs = require('fs');
-          const analysis = fs.readFileSync('/tmp/analysis.md', 'utf8');
-          const marker = '<!-- reviewpal -->';
+          const analysisJson = JSON.parse(fs.readFileSync('/tmp/analysis.json', 'utf8'));
           
-          // Skip if no meaningful content
-          if (!analysis.trim() || analysis.includes('No major concerns found')) {
-            console.log('No issues found, skipping comment');
+          const EMOJI_MAP = {
+            security: '🔒',
+            crash: '💥',
+            'data-loss': '🗑️',
+            performance: '🐌'
+          };
+          
+          // Collect all critical issues
+          const allIssues = [];
+          for (const file of analysisJson.files || []) {
+            for (const hunk of file.hunks || []) {
+              if (hunk.aiReview && hunk.aiReview.critical) {
+                for (const issue of hunk.aiReview.critical) {
+                  allIssues.push({
+                    file: file.filename,
+                    line: issue.line,
+                    type: issue.type,
+                    issue: issue.issue,
+                    diffHash: hunk.hunk.fileDiffHash,
+                    friendlySuggestion: issue.friendlySuggestion || issue.issue
+                  });
+                }
+              }
+            }
+          }
+          
+          if (allIssues.length === 0) {
+            console.log('No critical issues found');
             return;
           }
           
-          // Find existing comment from this action
+          // Post inline comments on each line
+          const headSha = context.payload.pull_request.head.sha;
+          for (const item of allIssues) {
+            try {
+              await github.rest.pulls.createReviewComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.issue.number,
+                body: `${EMOJI_MAP[item.type] || '⚠️'} **${item.type.toUpperCase()}**: ${item.friendlySuggestion}`,
+                commit_id: headSha,
+                path: item.file,
+                line: item.line,
+                side: 'RIGHT'
+              });
+            } catch (e) {
+              console.log(`Failed to comment on ${item.file}:${item.line}:`, e.message);
+            }
+          }
+          
+          // Build summary comment with links
+          const repo = context.repo.owner + '/' + context.repo.repo;
+          const prNumber = context.issue.number;
+          
+          const issuesByType = {};
+          for (const item of allIssues) {
+            if (!issuesByType[item.type]) issuesByType[item.type] = [];
+            const link = `https://github.com/${repo}/pull/${prNumber}/files#diff-${item.diffHash}R${item.line}`;
+            issuesByType[item.type].push(`[${item.file}:${item.line}](${link})`);
+          }
+          
+          let summary = '**ReviewPal found critical issues:**\n\n';
+          for (const [type, links] of Object.entries(issuesByType)) {
+            const emoji = EMOJI_MAP[type] || '⚠️';
+            summary += `${emoji} **${links.length} ${type.toUpperCase()} issue${links.length > 1 ? 's' : ''}**: ${links.join(', ')}\n`;
+          }
+          
+          summary += '\n*Click the links to see inline suggestions on each line.*';
+          
+          // Post or update summary comment
+          const marker = '<!-- reviewpal -->';
           const { data: comments } = await github.rest.issues.listComments({
             owner: context.repo.owner,
             repo: context.repo.repo,
             issue_number: context.issue.number
           });
           
-          const botComment = comments.find(c => 
-            c.body && c.body.includes(marker)
-          );
-          
-          const body = `${marker}\n\n${analysis}`;
+          const botComment = comments.find(c => c.body && c.body.includes(marker));
+          const body = `${marker}\n\n${summary}`;
           
           if (botComment) {
-            // Update existing comment
             await github.rest.issues.updateComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               comment_id: botComment.id,
               body
             });
-            console.log('Updated existing comment');
           } else {
-            // Create new comment
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
               body
             });
-            console.log('Created new comment');
           }
     
     - name: Check complexity threshold

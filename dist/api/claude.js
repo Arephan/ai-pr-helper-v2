@@ -33,14 +33,14 @@ function getClient() {
  * Review code with AI (language agnostic)
  */
 async function reviewCode(code, filename, model = 'claude-sonnet-4-20250514') {
-    const prompt = `You're a friendly code reviewer helping a teammate. Review this PR kindly.
+    const prompt = `You're a code reviewer. Analyze this code in any programming language and provide suggestions.
 
 CODE (${filename}):
 \`\`\`
 ${code.slice(0, 4000)}
 \`\`\`
 
-ONLY report CRITICAL issues that could break production:
+Detect the language automatically. ONLY report CRITICAL issues that could break production:
 - 🔒 Security vulnerabilities (exposed secrets, SQL injection, XSS)
 - 💥 Will crash (unhandled errors, null refs, race conditions)
 - 🗑️ Data loss risks (missing validation, destructive ops)
@@ -57,7 +57,7 @@ Respond in JSON:
       "type": "security|crash|data-loss|performance",
       "line": line_number_where_issue_is,
       "issue": "Brief what's wrong (1 sentence)",
-      "friendlySuggestion": "A friendly, polite suggestion for how to fix it. Write like you're helping a teammate - encouraging and specific. 1-2 sentences max."
+      "friendlySuggestion": "A helpful suggestion for how to improve or fix it. Be specific and actionable. 1-2 sentences max."
     }
   ]
 }

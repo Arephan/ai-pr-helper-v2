@@ -3,6 +3,7 @@
  */
 export interface DiffHunk {
     filename: string;
+    fileDiffHash?: string;
     startLine: number;
     endLine: number;
     content: string;

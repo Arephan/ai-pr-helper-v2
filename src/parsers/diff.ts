@@ -2,6 +2,7 @@
  * Git diff parser - extracts hunks from unified diff format
  */
 
+import { createHash } from 'crypto';
 import { DiffHunk, DiffFile, ParsedDiff } from '../types.js';
 
 interface RawHunk {
@@ -123,8 +124,14 @@ function convertHunk(raw: RawHunk, filename: string): DiffHunk {
     }
   }
   
+  // Generate GitHub diff hash (SHA256 of filename)
+  const fileDiffHash = createHash('sha256')
+    .update(filename)
+    .digest('hex');
+  
   return {
     filename,
+    fileDiffHash,
     startLine: raw.newStart,
     endLine: raw.newStart + raw.newLines - 1,
     content: contentLines.join('\n'),

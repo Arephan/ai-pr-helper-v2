@@ -8,6 +8,7 @@ exports.extractContext = extractContext;
 exports.isTypeScriptFile = isTypeScriptFile;
 exports.isTestFile = isTestFile;
 exports.quickAiCheck = quickAiCheck;
+const crypto_1 = require("crypto");
 /**
  * Parse a unified diff string into structured data
  */
@@ -106,8 +107,13 @@ function convertHunk(raw, filename) {
             contentLines.push(line);
         }
     }
+    // Generate GitHub diff hash (SHA256 of filename)
+    const fileDiffHash = (0, crypto_1.createHash)('sha256')
+        .update(filename)
+        .digest('hex');
     return {
         filename,
+        fileDiffHash,
         startLine: raw.newStart,
         endLine: raw.newStart + raw.newLines - 1,
         content: contentLines.join('\n'),

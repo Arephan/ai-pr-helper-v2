@@ -47,12 +47,12 @@ export function formatFriendlyReviewResult(result: ReviewResult): string {
         critical.forEach((item) => {
           const emoji = EMOJI_MAP[item.type] || '⚠️';
           
-          // Generate GitHub diff link to Files Changed tab
+          // Generate GitHub diff link to specific line
           let lineLink = `line ${item.line}`;
-          if (repo && prNumber) {
-            // Link to Files Changed tab - GitHub will show the file
-            const filesUrl = `https://github.com/${repo}/pull/${prNumber}/files`;
-            lineLink = `[${file.filename}:${item.line}](${filesUrl})`;
+          if (repo && prNumber && hunk.hunk.fileDiffHash) {
+            // GitHub format: /pull/{pr}/files#diff-{hash}R{line}
+            const diffUrl = `https://github.com/${repo}/pull/${prNumber}/files#diff-${hunk.hunk.fileDiffHash}R${item.line}`;
+            lineLink = `[${file.filename}:${item.line}](${diffUrl})`;
           }
           
           parts.push(`- ${emoji} **${item.type.toUpperCase()}**: ${item.issue} → ${lineLink}\n`);

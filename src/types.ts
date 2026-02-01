@@ -4,6 +4,7 @@
 
 export interface DiffHunk {
   filename: string;
+  fileDiffHash?: string;  // GitHub's diff hash for linking
   startLine: number;
   endLine: number;
   content: string;

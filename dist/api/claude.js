@@ -51,7 +51,7 @@ Ignore: style, minor optimizations, naming, comments, anything non-critical.
 Respond in JSON:
 {
   "language": "language name",
-  "summary": "Factual summary of what this PR does. Use short, declarative sentences. State what it adds, what it changes, what functionality it provides, and what it doesn't include. Mention risk level if relevant (high-risk changes, low-risk refactor, etc.). Be neutral and technical. 3-5 sentences.",
+  "summary": "Factual summary of what this PR does. Use short, declarative sentences. State what it adds, what it changes, and what functionality it provides. Do NOT mention risk level. Be neutral and technical. 2-4 sentences.",
   "critical": [
     {
       "type": "security|crash|data-loss|performance",

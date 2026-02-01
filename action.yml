@@ -221,7 +221,7 @@ runs:
           
           // Add friendly PR explanation
           if (prSummary) {
-            summary += `**What is this PR about:** ${prSummary}\n\n`;
+            summary += `## 📋 What is this PR about:\n\n${prSummary}\n\n`;
           }
           
           summary += '**Here are some suggestions:**\n\n';
@@ -230,8 +230,6 @@ runs:
             const links = items.map(i => `[${i.num}](${i.url})`).join(' ');
             summary += `${emoji} **${items.length} ${type.toUpperCase()}**: ${links}\n`;
           }
-          
-          summary += '\n*Click the numbers to jump to inline suggestions.*';
           
           // Post or update summary comment
           const marker = '<!-- reviewpal -->';

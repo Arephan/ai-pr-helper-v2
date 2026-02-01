@@ -175,10 +175,13 @@ runs:
                 side: 'RIGHT'
               });
               
-              // Save comment link for summary
+              // Save comment link for summary (use /changes#r{id} format)
+              const commentId = comment.data.id;
+              const commentUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/pull/${context.issue.number}/changes#r${commentId}`;
+              
               commentLinks.push({
                 type: item.type,
-                url: comment.data.html_url,
+                url: commentUrl,
                 file: item.file,
                 line: item.line
               });
